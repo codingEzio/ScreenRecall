@@ -1,0 +1,246 @@
+{
+  "description": "Local screen history for macOS, with date-based browsing, multiple displays, favorites and notes.",
+  "files": [
+    ".gitignore",
+    "AGENTS.md",
+    "ARTWORK.md",
+    "Dependencies/DeparturePixelZh/DeparturePixelZhCompact-Regular.ttf",
+    "Dependencies/DeparturePixelZh/Licenses/Apache2.txt",
+    "Dependencies/DeparturePixelZh/Licenses/Codicons.txt",
+    "Dependencies/DeparturePixelZh/Licenses/Cubic11.txt",
+    "Dependencies/DeparturePixelZh/Licenses/Cubic11Naming.txt",
+    "Dependencies/DeparturePixelZh/Licenses/DepartureMono.txt",
+    "Dependencies/DeparturePixelZh/Licenses/Devicons.txt",
+    "Dependencies/DeparturePixelZh/Licenses/DeviconsLegacy.txt",
+    "Dependencies/DeparturePixelZh/Licenses/FontAwesome.txt",
+    "Dependencies/DeparturePixelZh/Licenses/FontAwesome7.txt",
+    "Dependencies/DeparturePixelZh/Licenses/FontAwesomeExtension.txt",
+    "Dependencies/DeparturePixelZh/Licenses/FontLogos.txt",
+    "Dependencies/DeparturePixelZh/Licenses/HackExtraGlyphs.txt",
+    "Dependencies/DeparturePixelZh/Licenses/MaterialDesign.txt",
+    "Dependencies/DeparturePixelZh/Licenses/NerdFonts.txt",
+    "Dependencies/DeparturePixelZh/Licenses/NerdFontsAudit.txt",
+    "Dependencies/DeparturePixelZh/Licenses/NerdSymbols.txt",
+    "Dependencies/DeparturePixelZh/Licenses/NerdSymbolsReadme.txt",
+    "Dependencies/DeparturePixelZh/Licenses/Octicons.txt",
+    "Dependencies/DeparturePixelZh/Licenses/Pomicons.txt",
+    "Dependencies/DeparturePixelZh/Licenses/PowerSymbolsIEC.txt",
+    "Dependencies/DeparturePixelZh/Licenses/PowerlineExtra.txt",
+    "Dependencies/DeparturePixelZh/Licenses/PowerlineSymbols.txt",
+    "Dependencies/DeparturePixelZh/Licenses/Seti.txt",
+    "Dependencies/DeparturePixelZh/Licenses/WeatherIcons.txt",
+    "Dependencies/DeparturePixelZh/Licenses/WeatherIconsCredit.txt",
+    "Dependencies/DeparturePixelZh/NOTICE.md",
+    "Dependencies/DeparturePixelZh/OFL.txt",
+    "Dependencies/DeparturePixelZh/provenance.json",
+    "Documentation/cover.webp",
+    "Documentation/icon.png",
+    "Documentation/product-dark.png",
+    "Documentation/product-light.png",
+    "FONT_NOTICE_CORRECTIONS.md",
+    "LICENSE",
+    "LICENSE_SCOPE.md",
+    "Licenses/CC-BY-4.0.txt",
+    "Licenses/libwebp-1.6.0-COPYING.txt",
+    "Licenses/libwebp-1.6.0-PATENTS.txt",
+    "Package.swift",
+    "README.es.md",
+    "README.ja.md",
+    "README.ko.md",
+    "README.md",
+    "README.zh-Hans.md",
+    "Resources/Localization/en.lproj/Localizable.strings",
+    "Resources/Localization/es.lproj/Localizable.strings",
+    "Resources/Localization/ja.lproj/Localizable.strings",
+    "Resources/Localization/ko.lproj/Localizable.strings",
+    "Resources/Localization/ru.lproj/Localizable.strings",
+    "Resources/Localization/uk.lproj/Localizable.strings",
+    "Resources/Localization/zh-Hans.lproj/Localizable.strings",
+    "Resources/Localization/zh-Hant.lproj/Localizable.strings",
+    "Resources/ScreenRecall.icon/Assets/history-indicator.svg",
+    "Resources/ScreenRecall.icon/Assets/rewind-cue.svg",
+    "Resources/ScreenRecall.icon/Assets/screen-outline.svg",
+    "Resources/ScreenRecall.icon/icon.json",
+    "Sources/CWebP/module.modulemap",
+    "Sources/CWebP/shim.h",
+    "Sources/RecallCheck/main.swift",
+    "Sources/RecallCore/CaptureCatalog.swift",
+    "Sources/RecallCore/CaptureRecorder.swift",
+    "Sources/RecallCore/CatalogMaintenance.swift",
+    "Sources/RecallCore/FaultJournal.swift",
+    "Sources/RecallCore/ImageStore.swift",
+    "Sources/RecallCore/Library.swift",
+    "Sources/RecallCore/MigrationAudit.swift",
+    "Sources/RecallCore/RecordingCapacity.swift",
+    "Sources/RecallCore/RecordingPolicy.swift",
+    "Sources/RecallCore/Review.swift",
+    "Sources/RecallCore/StorageSchema.swift",
+    "Sources/RecallCore/WebPEncoding.swift",
+    "Sources/ScreenRecall/AnnotationFilter.swift",
+    "Sources/ScreenRecall/App.swift",
+    "Sources/ScreenRecall/CompactFont.swift",
+    "Sources/ScreenRecall/Diagnostics.swift",
+    "Sources/ScreenRecall/DisplayWall.swift",
+    "Sources/ScreenRecall/Localization.swift",
+    "Sources/ScreenRecall/MenuBarPopover.swift",
+    "Sources/ScreenRecall/MenuBarSurface.swift",
+    "Sources/ScreenRecall/Model.swift",
+    "Sources/ScreenRecall/PresentationStyle.swift",
+    "Sources/ScreenRecall/RecallDateField.swift",
+    "Sources/ScreenRecall/RecordingMenu.swift",
+    "Sources/ScreenRecall/RecordingPreviewView.swift",
+    "Sources/ScreenRecall/RecordingSettings.swift",
+    "Sources/ScreenRecall/ReviewControls.swift",
+    "Sources/ScreenRecall/ScreenshotViewport.swift",
+    "Sources/ScreenRecall/ThemeRenderer.swift",
+    "Sources/ScreenRecall/WorkspaceSidebar.swift",
+    "THIRD_PARTY_NOTICES.md",
+    "Tests/RecallCoreTests/CatalogTests.swift",
+    "Tests/RecallCoreTests/CompactFontTests.swift",
+    "Tests/RecallCoreTests/DecodeSchedulingTests.swift",
+    "Tests/RecallCoreTests/FaultJournalTests.swift",
+    "Tests/RecallCoreTests/ImageTests.swift",
+    "Tests/RecallCoreTests/LocalizationTests.swift",
+    "Tests/RecallCoreTests/MigrationAuditTests.swift",
+    "Tests/RecallCoreTests/ModelTests.swift",
+    "Tests/RecallCoreTests/OwnershipSchemaTests.swift",
+    "Tests/RecallCoreTests/PresentationPerformanceTests.swift",
+    "Tests/RecallCoreTests/PresentationPreferencesTests.swift",
+    "Tests/RecallCoreTests/RecorderTests.swift",
+    "Tests/RecallCoreTests/RecordingCapacityTests.swift",
+    "Tests/RecallCoreTests/ReviewTests.swift",
+    "Tests/RecallCoreTests/TimelineTests.swift",
+    "public-source.json",
+    "script/build_and_run.sh",
+    "script/build_icon.sh",
+    "script/check_public.ts",
+    "script/test_build_icon.py",
+    "script/verify_compact_font_bundle.swift"
+  ],
+  "assets": {
+    "Documentation/product-light.png": "06ee4c0548c7161a299cfa2bbef91df8e2051efae1db978062b321709789b1c8",
+    "Documentation/icon.png": "1a1db76b122f61d8a1c6f5601e71001fbca8ed07436b0ab65bc7bc95f61a19b6",
+    "Documentation/product-dark.png": "5f8c0d889a6facfa5d128cded6ea36ececbedeed8801d0c626c0f3a2567fadde",
+    "Documentation/cover.png": "e58b1c8ba5d605b053c9190de6e588841fe0d9446fa15a045ee3acdcd93214a2",
+    "Dependencies/DeparturePixelZh/DeparturePixelZhCompact-Regular.ttf": "74adf4919c690e61aa7bdd4c369a6f5c84029413a7da5e85d687ea7fa6b502e7",
+    "Documentation/cover.webp": "0f79b1734c31db2b6ef1baa6641233cf7cefce74fe5447432d07c302b7d9e5ae"
+  },
+  "fontFiles": [
+    {
+      "path": "DeparturePixelZhCompact-Regular.ttf",
+      "sha256": "74adf4919c690e61aa7bdd4c369a6f5c84029413a7da5e85d687ea7fa6b502e7"
+    },
+    {
+      "path": "OFL.txt",
+      "sha256": "b65e42750f3cb65437a97f4dfd781c58f199259949db2341012be60e32500e83"
+    },
+    {
+      "path": "NOTICE.md",
+      "sha256": "380756812fd334a86b98a295e55b734cc24dd6c3100b1b2e84f076b6ab59ddd2"
+    },
+    {
+      "path": "provenance.json",
+      "sha256": "bdbdf8ee8d331a333709d88655b7a103146ee7ba231b1f4f7b1b7bff73c20a34"
+    },
+    {
+      "path": "Licenses/Apache2.txt",
+      "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+    },
+    {
+      "path": "Licenses/Codicons.txt",
+      "sha256": "d6239afa918961b465b07bf7411cbe34ff6685854f58553db7966f4881a0211f"
+    },
+    {
+      "path": "Licenses/Cubic11.txt",
+      "sha256": "2b6e5938e5cffa0b9e183bd05f8c363e174e7ebed1a0556e2855fd1707fa2188"
+    },
+    {
+      "path": "Licenses/Cubic11Naming.txt",
+      "sha256": "7d8de3293fbde3c0be92b41496d7129ca1cf2397856cf3bf8df83007c9978755"
+    },
+    {
+      "path": "Licenses/DepartureMono.txt",
+      "sha256": "b65e42750f3cb65437a97f4dfd781c58f199259949db2341012be60e32500e83"
+    },
+    {
+      "path": "Licenses/Devicons.txt",
+      "sha256": "121194741d4a915b9f5890fdd6dd95121f9b1f816517c792358d72d7c838d664"
+    },
+    {
+      "path": "Licenses/DeviconsLegacy.txt",
+      "sha256": "d0c1eccf6379e2d4a702d15c8ab1bca43320edc63126ebd51f3907b8e879ee29"
+    },
+    {
+      "path": "Licenses/FontAwesome.txt",
+      "sha256": "de784a808496d49f5f80dd9d1d6e9a51cff712cfbc339e7c25155631ae3cdb5d"
+    },
+    {
+      "path": "Licenses/FontAwesome7.txt",
+      "sha256": "20c6f40715a567c97b80f6944beb8bb325835cab47ea7dcab89ee3b8e077eced"
+    },
+    {
+      "path": "Licenses/FontAwesomeExtension.txt",
+      "sha256": "b47b15d771c4507a75ff65beca3a78168d6af4cca9b45177a1aa817139c64ba5"
+    },
+    {
+      "path": "Licenses/FontLogos.txt",
+      "sha256": "88d9b4eb60579c191ec391ca04c16130572d7eedc4a86daa58bf28c6e14c9bcd"
+    },
+    {
+      "path": "Licenses/HackExtraGlyphs.txt",
+      "sha256": "1f61bb7c790c59b4b0ecdf304628b94e42ae4c8020094a8c3da73381ab212623"
+    },
+    {
+      "path": "Licenses/MaterialDesign.txt",
+      "sha256": "3bae6305bcaa6d10219b999f65c342034c2d40b1c0e8567fa08605e73ccba829"
+    },
+    {
+      "path": "Licenses/NerdFonts.txt",
+      "sha256": "1f6ad4edae6479aaace3112ede5279a23284ae54b2a34db66357aef5f64df160"
+    },
+    {
+      "path": "Licenses/NerdFontsAudit.txt",
+      "sha256": "c2a3f634fa1e5001912f4f19a42fa86fdef5654691b70000f936089325aa404f"
+    },
+    {
+      "path": "Licenses/NerdSymbols.txt",
+      "sha256": "84a7a98c82140fb12c37fe42b93805baa16024cb3e5acc599b7ffe612c55d847"
+    },
+    {
+      "path": "Licenses/NerdSymbolsReadme.txt",
+      "sha256": "a4463554f951c8153d0bdfcb6e03b382baf99dcdd3f99790014427687abdc55b"
+    },
+    {
+      "path": "Licenses/Octicons.txt",
+      "sha256": "4f886642f9e8d99eeadd484acdac011c3fde8a338faf52f5ca1408c13b9a9b63"
+    },
+    {
+      "path": "Licenses/Pomicons.txt",
+      "sha256": "cb4797a9745683f287c28833db596e9d68ec43082d59359b3a49c504f0f610ce"
+    },
+    {
+      "path": "Licenses/PowerSymbolsIEC.txt",
+      "sha256": "11aef1cdf2d58d822e6857e2574870ccc59d4900052bf5c098e319d750e7ac3d"
+    },
+    {
+      "path": "Licenses/PowerlineExtra.txt",
+      "sha256": "544307a58e6826c24145b2af1c3578b53e2e21ae0e6c67ab4c6abd544304d26a"
+    },
+    {
+      "path": "Licenses/PowerlineSymbols.txt",
+      "sha256": "46d5355e4734468135d8e4a30d0916292cc4df2b3ec30aa68c866f82497933be"
+    },
+    {
+      "path": "Licenses/Seti.txt",
+      "sha256": "d4d2d888c6a0a220a7b0e2d6013cf37539b0e05ef937002b3b33bdb364575b88"
+    },
+    {
+      "path": "Licenses/WeatherIcons.txt",
+      "sha256": "69cdedc8a4f57a30d68e4f045af8b9cce0ec3b1a6e7eec1ad41737c894f26790"
+    },
+    {
+      "path": "Licenses/WeatherIconsCredit.txt",
+      "sha256": "1854ba6df3083a336c6e951ed0e2c61bbf862cf4930b7861592331ce8d041159"
+    }
+  ]
+}

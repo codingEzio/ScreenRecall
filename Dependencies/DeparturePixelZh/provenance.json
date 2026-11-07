@@ -1,0 +1,123 @@
+{
+  "version": "0.1.0",
+  "preset_id": "departure_pixel_zh",
+  "key": "f5342ebf3b6a32bf6e82316948b8e7d40c93dc8edee87b3c9d67cea2e791363c",
+  "sources": {
+    "departure": {
+      "url": "https://github.com/rektdeckard/departure-mono/releases/download/v1.500/DepartureMono-1.500.zip",
+      "archive_sha256": "bf3e48059aeef4617ec585bdea81dcc3491c576b3e7a472f52faf40e09ee5c3a",
+      "member": "DepartureMono-1.500/DepartureMono-Regular.otf",
+      "font_sha256": "4d53f663155cf8bf7ffc8e688776e719625f7bbb80a8d90073438b249261a2e0",
+      "embedded_version": "Version 1.500;Glyphs 3.3.1 (3343)"
+    },
+    "cubic": {
+      "url": "https://raw.githubusercontent.com/ACh-K/Cubic-11/4c566f7d6cc5c05ee360fe9cff56b5da1fcafd4d/fonts/ttf/Cubic_11.ttf",
+      "archive_sha256": "0193f5f033612496df6b45ee92ac3b335bc6a5a24ff95da55ca87b33e57dcf62",
+      "member": null,
+      "font_sha256": "0193f5f033612496df6b45ee92ac3b335bc6a5a24ff95da55ca87b33e57dcf62",
+      "embedded_version": "1.451"
+    },
+    "nerd": {
+      "url": "https://github.com/ryanoasis/nerd-fonts/releases/download/v3.5.1/NerdFontsSymbolsOnly.zip",
+      "archive_sha256": "fdca3682534f6f65e1ccb2345b0362ccf67d9b8eca7c8025330946e93e2473bc",
+      "member": "SymbolsNerdFontMono-Regular.ttf",
+      "font_sha256": "fe471e538392f51910faab985fa8e192a39dd3426125edd15b71b3680df0e749",
+      "embedded_version": "Version 001.000;Nerd Fonts 3.5.1"
+    }
+  },
+  "variants": [
+    {
+      "family": "DeparturePixelZh",
+      "postscript_name": "DeparturePixelZh",
+      "metrics": {
+        "units_per_em": 1100,
+        "cell": 700,
+        "ascent": 1300,
+        "descent": -400,
+        "line_gap": 0,
+        "x_height": 600,
+        "cap_height": 800,
+        "underline_position": -150,
+        "underline_thickness": 50,
+        "horizontal_padding": 100,
+        "cjk_scale": 0.95,
+        "icon_height": 1000,
+        "icon_center": 400,
+        "mark_gap": 100,
+        "outline_error": 0.5
+      },
+      "glyphs": 21671,
+      "sources": {
+        "nerd": 10617,
+        "departure": 1079,
+        "cubic": 9852
+      },
+      "files": {
+        "DeparturePixelZh-Regular.ttf": "54ce94332b3736eac78de6819e8b7dc0139a48b0f439c49aa065347c46822af6",
+        "DeparturePixelZh_coverage.json": "66b1491736cc528573b3bd7fc42d5cdb5510746c2693bfaa1f2348b135962b41",
+        "DeparturePixelZh-Regular.woff2": "e78015a8e251a7ebf027aeb7d4506b50812807124a8532069d765e3c684f5d3a"
+      }
+    },
+    {
+      "family": "DeparturePixelZh Compact",
+      "postscript_name": "DeparturePixelZhCompact",
+      "metrics": {
+        "units_per_em": 1100,
+        "cell": 650,
+        "ascent": 1300,
+        "descent": -400,
+        "line_gap": 0,
+        "x_height": 600,
+        "cap_height": 800,
+        "underline_position": -150,
+        "underline_thickness": 50,
+        "horizontal_padding": 50,
+        "cjk_scale": 0.95,
+        "icon_height": 1000,
+        "icon_center": 400,
+        "mark_gap": 100,
+        "outline_error": 0.5
+      },
+      "glyphs": 21671,
+      "sources": {
+        "nerd": 10617,
+        "departure": 1079,
+        "cubic": 9852
+      },
+      "files": {
+        "DeparturePixelZhCompact-Regular.ttf": "74adf4919c690e61aa7bdd4c369a6f5c84029413a7da5e85d687ea7fa6b502e7",
+        "DeparturePixelZhCompact_coverage.json": "66b1491736cc528573b3bd7fc42d5cdb5510746c2693bfaa1f2348b135962b41",
+        "DeparturePixelZhCompact-Regular.woff2": "5622b5b65966cecdf29f35162fed055189ab0e369fbf925ef90b9e43c2e51cf4"
+      }
+    }
+  ],
+  "metrics": {
+    "units_per_em": 1100,
+    "cell": 700,
+    "ascent": 1300,
+    "descent": -400,
+    "line_gap": 0,
+    "x_height": 600,
+    "cap_height": 800,
+    "underline_position": -150,
+    "underline_thickness": 50,
+    "horizontal_padding": 100,
+    "cjk_scale": 0.95,
+    "icon_height": 1000,
+    "icon_center": 400,
+    "mark_gap": 100,
+    "outline_error": 0.5
+  },
+  "builder": {
+    "requested_revision": "0bd24fd18f8c5aea5b2d238ee553a30cfd66c1a1",
+    "development": false,
+    "revision": "0bd24fd18f8c5aea5b2d238ee553a30cfd66c1a1",
+    "dirty": false
+  },
+  "rebuilt": [],
+  "reused": [
+    "DeparturePixelZh",
+    "DeparturePixelZh Compact"
+  ],
+  "elapsed_seconds": 0.057
+}

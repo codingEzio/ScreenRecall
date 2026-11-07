@@ -1,0 +1,13 @@
+.build/
+Local/
+.DS_Store
+*.xcodeproj/
+.env
+.env.*
+*.sqlite
+*.sqlite3
+*-wal
+*-shm
+*.p12
+*.pem
+*.key

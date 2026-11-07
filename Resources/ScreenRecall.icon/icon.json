@@ -1,0 +1,108 @@
+{
+  "fill": {
+    "solid": "srgb:0.12549,0.12549,0.12549,1"
+  },
+  "groups": [
+    {
+      "layers": [
+        {
+          "image-name": "screen-outline.svg",
+          "name": "Screen outline",
+          "fill-specializations": [
+            {
+              "appearance": "dark",
+              "value": {
+                "solid": "srgb:0.95294,0.9451,0.92157,1"
+              }
+            },
+            {
+              "appearance": "tinted",
+              "value": {
+                "solid": "extended-gray:1,1"
+              }
+            }
+          ],
+          "glass": false
+        }
+      ],
+      "shadow": {
+        "kind": "neutral",
+        "opacity": 0
+      },
+      "specular": false,
+      "translucency": {
+        "enabled": false,
+        "value": 0.08
+      }
+    },
+    {
+      "layers": [
+        {
+          "image-name": "rewind-cue.svg",
+          "name": "Rewind cue",
+          "fill-specializations": [
+            {
+              "appearance": "dark",
+              "value": {
+                "solid": "srgb:0.95294,0.9451,0.92157,1"
+              }
+            },
+            {
+              "appearance": "tinted",
+              "value": {
+                "solid": "extended-gray:1,1"
+              }
+            }
+          ],
+          "glass": false
+        }
+      ],
+      "shadow": {
+        "kind": "neutral",
+        "opacity": 0
+      },
+      "specular": false,
+      "translucency": {
+        "enabled": false,
+        "value": 0.08
+      }
+    },
+    {
+      "layers": [
+        {
+          "image-name": "history-indicator.svg",
+          "name": "History indicator",
+          "glass": false,
+          "fill-specializations": [
+            {
+              "appearance": "dark",
+              "value": {
+                "solid": "srgb:1,0.12549,0.16863,1"
+              }
+            },
+            {
+              "appearance": "tinted",
+              "value": {
+                "solid": "extended-gray:1,1"
+              }
+            }
+          ]
+        }
+      ],
+      "shadow": {
+        "kind": "neutral",
+        "opacity": 0
+      },
+      "specular": false,
+      "translucency": {
+        "enabled": false,
+        "value": 0
+      }
+    }
+  ],
+  "supported-platforms": {
+    "squares": [
+      "macOS"
+    ]
+  }
+}
