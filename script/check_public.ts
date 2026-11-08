@@ -58,6 +58,10 @@ const privatePath =
 const secret =
   /-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----|\bAKIA[A-Z0-9]{16}\b|\bgh[pousr]_[A-Za-z0-9]{30,}\b|\bsk-proj-[A-Za-z0-9_-]{30,}\b|\/Users\/[A-Za-z][^/\s]*\//;
 let failures = 0;
+if (secret.test(refs)) {
+  console.error("Git ref contains a credential or personal path pattern");
+  failures++;
+}
 async function inspect(path: string, bytes: Uint8Array, indexed: boolean) {
   let reason = privatePath.test(path) ? "runtime/private path" : null;
   if (indexed && !allowed.has(path)) reason = "unreviewed indexed file";
@@ -156,30 +160,73 @@ for (const author of new Set(authors.trim().split("\n").filter(Boolean))) {
     failures++;
   }
 }
-const messages = decoder.decode(
-  await git("log", ...refObjects, "--format=%B%x00"),
-);
-if (secret.test(messages)) {
-  console.error(
-    "Commit message contains a credential or personal path pattern",
-  );
-  failures++;
-}
-for (const [name, oid] of releaseRefs) {
-  if (!name.startsWith("refs/tags/")) continue;
-  if (decoder.decode(await git("cat-file", "-t", oid)).trim() !== "tag") {
-    continue;
-  }
-  const tag = decoder.decode(await git("cat-file", "tag", oid));
-  const tagger = /^tagger (.+?) \d+ [+-]\d{4}$/m.exec(tag)?.[1];
-  if (
-    tagger !== "codingEzio <22790019+codingEzio@users.noreply.github.com>" ||
-    secret.test(tag)
-  ) {
+for (const commit of commits) {
+  const raw = decoder.decode(await git("cat-file", "commit", commit));
+  if (secret.test(raw)) {
     console.error(
-      "Annotated tag contains an unexpected identity or sensitive pattern",
+      "Commit metadata or message contains a credential or personal path pattern",
     );
     failures++;
+  }
+}
+const checkedTags = new Set<string>();
+for (const [name, firstOid] of releaseRefs) {
+  let oid = firstOid;
+  const chain = new Set<string>();
+  while (true) {
+    const objectType = decoder.decode(await git("cat-file", "-t", oid)).trim();
+    if (objectType === "commit") break;
+    if (objectType !== "tag" || !name.startsWith("refs/tags/")) {
+      console.error("Release refs must resolve to commits");
+      failures++;
+      break;
+    }
+    if (chain.has(oid)) {
+      console.error("Annotated tag chain is cyclic");
+      failures++;
+      break;
+    }
+    if (checkedTags.has(oid)) break;
+    chain.add(oid);
+    checkedTags.add(oid);
+    const tag = decoder.decode(await git("cat-file", "tag", oid));
+    const boundary = tag.indexOf("\n\n");
+    const header = boundary < 0 ? [] : tag.slice(0, boundary).split("\n");
+    const objects = header.filter((line) => line.startsWith("object "));
+    const types = header.filter((line) => line.startsWith("type "));
+    const taggers = header.filter((line) => line.startsWith("tagger "));
+    const target = objects.length === 1
+      ? /^object ([0-9a-f]{40}|[0-9a-f]{64})$/.exec(objects[0])?.[1]
+      : undefined;
+    const declaredType = types.length === 1
+      ? /^type (commit|tag)$/.exec(types[0])?.[1]
+      : undefined;
+    const tagger = taggers.length === 1
+      ? /^tagger (.+?) \d+ [+-]\d{4}$/.exec(taggers[0])?.[1]
+      : undefined;
+    if (!target || !declaredType) {
+      console.error("Annotated tag has an invalid target header");
+      failures++;
+      break;
+    }
+    if (
+      tagger !== "codingEzio <22790019+codingEzio@users.noreply.github.com>" ||
+      secret.test(tag)
+    ) {
+      console.error(
+        "Annotated tag contains an unexpected identity or sensitive pattern",
+      );
+      failures++;
+    }
+    if (
+      decoder.decode(await git("cat-file", "-t", target)).trim() !==
+        declaredType
+    ) {
+      console.error("Annotated tag target type does not match its header");
+      failures++;
+      break;
+    }
+    oid = target;
   }
 }
 if (
