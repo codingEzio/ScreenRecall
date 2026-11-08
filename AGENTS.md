@@ -13,6 +13,7 @@ Before sharing, stage named source paths and run
 `deno run --allow-run=git script/check_public.ts`. The check reads the Git index and
 all reachable history. New binary documentation/dependency assets need reviewed
 hashes in public-source.json. Keep all third-party notices and license scopes.
+For Git checker changes, run `python3 script/test_public_refs.py`.
 
 User images, catalog annotations and view state are durable data. Never delete,
 move or bulk-reencode a real capture library without explicit owner authority.

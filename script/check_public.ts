@@ -10,26 +10,41 @@ async function git(...args: string[]): Promise<Uint8Array> {
   if (!result.success) throw new Error("Git inspection failed");
   return result.stdout;
 }
-// Notes can contain private agent metadata. Snapshot only branch/tag refs;
-// refuse every other ref before reading its objects, including Git notes.
-const refs = decoder.decode(
-  await git("for-each-ref", "--format=%(refname) %(objectname)"),
-);
+// Notes can contain private agent metadata. Snapshot branch/tag refs and
+// refuse unknown namespaces before reading their objects, including Git notes.
+// Remote-tracking refs are safe only when their commits are already in the
+// branch/tag history inspected below; this supports ordinary Git clones.
+const refFormat = "--format=%(refname) %(objectname) %(symref)";
+const refs = decoder.decode(await git("for-each-ref", refFormat));
 const refRows = refs.trim().split("\n").filter(Boolean).map((line) =>
   line.split(" ")
 );
-if (
-  refRows.some(([name]) =>
-    !name.startsWith("refs/heads/") && !name.startsWith("refs/tags/")
-  )
-) {
+const releaseRefs = refRows.filter(([name]) =>
+  name.startsWith("refs/heads/") || name.startsWith("refs/tags/")
+);
+const trackingRefs = refRows.filter(([name]) =>
+  name.startsWith("refs/remotes/")
+);
+if (refRows.length !== releaseRefs.length + trackingRefs.length) {
   console.error(
     "Non-branch/tag refs exist; review a separate source-only release history.",
   );
   Deno.exit(1);
 }
-const refObjects = refRows.map(([, oid]) => oid);
+const refObjects = releaseRefs.map(([, oid]) => oid);
 if (!refObjects.length) throw new Error("No release history to inspect");
+const commits = new Set(
+  decoder.decode(await git("rev-list", ...refObjects)).trim().split("\n")
+    .filter(Boolean),
+);
+if (trackingRefs.length) {
+  if (trackingRefs.some(([, oid]) => !commits.has(oid))) {
+    console.error(
+      "Remote-tracking refs contain commits outside the reviewed branch/tag history.",
+    );
+    Deno.exit(1);
+  }
+}
 const manifest = JSON.parse(
   decoder.decode(await git("show", ":public-source.json")),
 );
@@ -109,11 +124,26 @@ const objects = decoder.decode(
   await git("rev-list", "--objects", ...refObjects),
 )
   .split("\n").filter(Boolean);
-for (const row of objects) {
-  const space = row.indexOf(" ");
-  if (space < 0) continue;
-  const oid = row.slice(0, space), path = row.slice(space + 1);
-  if (decoder.decode(await git("cat-file", "-t", oid)).trim() === "blob") {
+// rev-list --objects reports only one pathname per object. Walk every commit
+// tree as well so a reused blob cannot hide a private historical pathname.
+const inspected = new Set<string>();
+for (const commit of commits) {
+  const entries = decoder.decode(
+    await git("ls-tree", "-r", "-z", "--full-tree", commit),
+  )
+    .split("\0").filter(Boolean);
+  for (const entry of entries) {
+    const tab = entry.indexOf("\t");
+    if (tab < 0) throw new Error("Invalid Git tree entry");
+    const [, type, oid] = entry.slice(0, tab).split(" ");
+    const path = entry.slice(tab + 1), key = `${oid}\0${path}`;
+    if (inspected.has(key)) continue;
+    inspected.add(key);
+    if (type !== "blob") {
+      console.error(`${path}: submodule requires explicit review`);
+      failures++;
+      continue;
+    }
     await inspect(path, await git("cat-file", "blob", oid), false);
   }
 }
@@ -126,10 +156,34 @@ for (const author of new Set(authors.trim().split("\n").filter(Boolean))) {
     failures++;
   }
 }
+const messages = decoder.decode(
+  await git("log", ...refObjects, "--format=%B%x00"),
+);
+if (secret.test(messages)) {
+  console.error(
+    "Commit message contains a credential or personal path pattern",
+  );
+  failures++;
+}
+for (const [name, oid] of releaseRefs) {
+  if (!name.startsWith("refs/tags/")) continue;
+  if (decoder.decode(await git("cat-file", "-t", oid)).trim() !== "tag") {
+    continue;
+  }
+  const tag = decoder.decode(await git("cat-file", "tag", oid));
+  const tagger = /^tagger (.+?) \d+ [+-]\d{4}$/m.exec(tag)?.[1];
+  if (
+    tagger !== "codingEzio <22790019+codingEzio@users.noreply.github.com>" ||
+    secret.test(tag)
+  ) {
+    console.error(
+      "Annotated tag contains an unexpected identity or sensitive pattern",
+    );
+    failures++;
+  }
+}
 if (
-  decoder.decode(
-    await git("for-each-ref", "--format=%(refname) %(objectname)"),
-  ) !== refs
+  decoder.decode(await git("for-each-ref", refFormat)) !== refs
 ) {
   console.error(
     "Git refs changed during review; repeat in an isolated repository.",

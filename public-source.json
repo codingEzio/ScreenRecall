@@ -115,6 +115,7 @@
     "script/build_icon.sh",
     "script/check_public.ts",
     "script/test_build_icon.py",
+    "script/test_public_refs.py",
     "script/verify_compact_font_bundle.swift"
   ],
   "assets": {
