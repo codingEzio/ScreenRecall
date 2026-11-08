@@ -239,6 +239,21 @@ os.execv(real, [real, *args])
             self.assertNotIn(sensitive_name, result.stderr)
             git("update-ref", "-d", "refs/tags/synthetic-empty-tree")
 
+            # The same blob and pathname can have a different mode in an older tree.
+            # The newer regular file must not hide the historical symlink.
+            root_entries = git("ls-tree", head)
+            readme_line = next(line for line in root_entries.splitlines() if line.endswith("\tREADME.md"))
+            self.assertTrue(readme_line.startswith("100644 blob "))
+            old_entries = root_entries.replace(readme_line, "120000" + readme_line[6:])
+            old_tree = git("mktree", input=old_entries + "\n")
+            old_commit = git("commit-tree", old_tree, "-p", head, input="Synthetic old symlink\n")
+            new_commit = git("commit-tree", tree, "-p", old_commit, input="Synthetic regular file\n")
+            git("update-ref", "refs/tags/synthetic-reused-mode", new_commit)
+            result = check()
+            self.assertNotEqual(result.returncode, 0, "reused blob and path must not hide an old symlink")
+            self.assertIn("README.md: non-regular historical source", result.stderr)
+            git("update-ref", "-d", "refs/tags/synthetic-reused-mode")
+
             link.symlink_to("../README.md")
             git("add", "--", "script/synthetic-link")
             git("commit", "--quiet", "-m", "Create synthetic historical symlink")

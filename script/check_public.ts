@@ -183,7 +183,8 @@ for (const commit of commits) {
     const tab = entry.indexOf("\t");
     if (tab < 0) throw new Error("Invalid Git tree entry");
     const [mode, type, oid] = entry.slice(0, tab).split(" ");
-    const path = entry.slice(tab + 1), key = `${oid}\0${path}`;
+    const path = entry.slice(tab + 1),
+      key = `${mode}\0${type}\0${oid}\0${path}`;
     if (inspected.has(key)) continue;
     inspected.add(key);
     if (type === "tree") {
