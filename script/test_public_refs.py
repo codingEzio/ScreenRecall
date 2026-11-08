@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Exercise release-history checks against real, disposable Git refs."""
 
+import json
 import os
 from pathlib import Path
 import shutil
@@ -16,30 +17,55 @@ class PublicRefTests(unittest.TestCase):
     def test_clone_ahead_notes_and_unreviewed_remote_ref(self):
         with tempfile.TemporaryDirectory(prefix="screenrecall-public-refs-") as directory:
             root = Path(directory)
-            work = root / "clone"
             env = dict(os.environ, DENO_DIR=str(root / "deno-cache"),
                        GIT_AUTHOR_NAME="codingEzio",
                        GIT_AUTHOR_EMAIL="22790019+codingEzio@users.noreply.github.com",
                        GIT_COMMITTER_NAME="codingEzio",
                        GIT_COMMITTER_EMAIL="22790019+codingEzio@users.noreply.github.com")
-            subprocess.run(["git", "clone", "--quiet", "--no-hardlinks", str(ROOT), str(work)],
+            origin = root / "origin"
+            origin.mkdir()
+            (origin / "script").mkdir()
+            shutil.copy2(ROOT / "script/check_public.ts", origin / "script/check_public.ts")
+            (origin / ".gitignore").write_text("Local/\n")
+            (origin / "README.md").write_text("# Synthetic project\n")
+            files = [".gitignore", "README.md", "public-source.json", "script/check_public.ts"]
+            (origin / "public-source.json").write_text(json.dumps({
+                "files": files, "assets": {}, "fontFiles": [],
+            }) + "\n")
+            subprocess.run(["git", "init", "--quiet", "-b", "main"], cwd=origin,
                            check=True, capture_output=True, env=env, timeout=30)
-            changed = (
-                "AGENTS.md", "script/check_public.ts", "script/test_public_refs.py",
-                "public-source.json",
-            )
-            for name in changed:
-                shutil.copy2(ROOT / name, work / name)
+            subprocess.run(["git", "add", "--", *files], cwd=origin,
+                           check=True, capture_output=True, env=env, timeout=30)
+            subprocess.run(["git", "commit", "--quiet", "-m", "Synthetic base"], cwd=origin,
+                           check=True, capture_output=True, env=env, timeout=30)
+            with (origin / "README.md").open("a") as stream:
+                stream.write("Second synthetic commit.\n")
+            subprocess.run(["git", "add", "--", "README.md"], cwd=origin,
+                           check=True, capture_output=True, env=env, timeout=30)
+            subprocess.run(["git", "commit", "--quiet", "-m", "Synthetic update"], cwd=origin,
+                           check=True, capture_output=True, env=env, timeout=30)
+            work = root / "clone"
+            subprocess.run(["git", "clone", "--quiet", "--no-hardlinks", str(origin), str(work)],
+                           check=True, capture_output=True, env=env, timeout=30)
 
             def git(*args, input=None):
                 return subprocess.run(["git", *args], cwd=work, env=env, input=input,
                                       text=True, capture_output=True, check=True, timeout=30).stdout.strip()
 
-            def check():
+            def check(extra_env=None):
+                check_env = dict(env)
+                check_env.update(extra_env or {})
                 return subprocess.run(["deno", "run", "--allow-run=git", "script/check_public.ts"],
-                                      cwd=work, env=env, text=True, capture_output=True, timeout=45)
+                                      cwd=work, env=check_env, text=True, capture_output=True, timeout=45)
 
-            git("add", "--", *changed)
+            shallow = root / "shallow"
+            subprocess.run(["git", "clone", "--quiet", "--depth=1", origin.as_uri(), str(shallow)],
+                           check=True, capture_output=True, env=env, timeout=30)
+            result = subprocess.run(["deno", "run", "--allow-run=git", "script/check_public.ts"],
+                                    cwd=shallow, env=env, text=True, capture_output=True, timeout=45)
+            self.assertNotEqual(result.returncode, 0, "shallow history must be refused")
+            self.assertIn("Shallow Git history", result.stderr)
+
             result = check()
             self.assertEqual(result.returncode, 0, result.stderr)
 
@@ -49,6 +75,50 @@ class PublicRefTests(unittest.TestCase):
             git("commit", "--quiet", "-m", "Test an ahead branch")
             result = check()
             self.assertEqual(result.returncode, 0, result.stderr)
+
+            head = git("rev-parse", "HEAD")
+            tree = git("rev-parse", "HEAD^{tree}")
+            detached = git("commit-tree", tree, "-p", head, input="Synthetic detached commit\n")
+            git("switch", "--quiet", "--detach", detached)
+            result = check()
+            self.assertNotEqual(result.returncode, 0, "unreviewed detached HEAD must be refused")
+            self.assertIn("HEAD is outside the reviewed branch/tag history", result.stderr)
+            git("switch", "--quiet", "main")
+
+            late = work / "Local/late.txt"
+            late.parent.mkdir(exist_ok=True)
+            late.write_text("synthetic late file\n")
+            wrappers = root / "wrappers"
+            wrappers.mkdir()
+            wrapper = wrappers / "git"
+            wrapper.write_text('''#!/usr/bin/env python3
+import os, subprocess, sys
+args = sys.argv[1:]
+real = os.environ["REAL_GIT"]
+if "ls-files" in args and "-z" in args:
+    result = subprocess.run([real, *args], capture_output=True)
+    subprocess.run([real, "add", "-f", "--", "Local/late.txt"], check=True, capture_output=True)
+    sys.stdout.buffer.write(result.stdout)
+    sys.stderr.buffer.write(result.stderr)
+    sys.exit(result.returncode)
+os.execv(real, [real, *args])
+''')
+            wrapper.chmod(0o755)
+            result = check({"PATH": str(wrappers) + os.pathsep + env["PATH"],
+                            "REAL_GIT": shutil.which("git")})
+            self.assertNotEqual(result.returncode, 0, "concurrent index writes must be refused")
+            self.assertIn("Git index changed during review", result.stderr)
+            git("rm", "--cached", "--quiet", "--", "Local/late.txt")
+            late.unlink()
+
+            link = work / "script/synthetic-link"
+            link.symlink_to("../README.md")
+            git("add", "--", "script/synthetic-link")
+            result = check()
+            self.assertNotEqual(result.returncode, 0, "indexed symlinks must be refused")
+            self.assertIn("non-regular indexed file", result.stderr)
+            git("rm", "--cached", "--quiet", "--", "script/synthetic-link")
+            link.unlink()
 
             git("notes", "add", "-m", "synthetic note", "HEAD")
             self.assertNotEqual(check().returncode, 0, "notes must be refused")
@@ -109,6 +179,16 @@ class PublicRefTests(unittest.TestCase):
             self.assertIn("Commit metadata or message contains", result.stderr)
             git("update-ref", "-d", "refs/tags/synthetic-header")
 
+            duplicate_author = (f"tree {tree}\nparent {head}\n"
+                                "author Synthetic <nobody@example.test> 0 +0000\n"
+                                f"author {identity} 0 +0000\ncommitter {identity} 0 +0000\n\nSynthetic\n")
+            duplicate = git("hash-object", "--literally", "-t", "commit", "-w", "--stdin", input=duplicate_author)
+            git("update-ref", "refs/tags/synthetic-duplicate-author", duplicate)
+            result = check()
+            self.assertNotEqual(result.returncode, 0, "ambiguous commit identity must be refused")
+            self.assertIn("Commit contains an unexpected or ambiguous identity", result.stderr)
+            git("update-ref", "-d", "refs/tags/synthetic-duplicate-author")
+
             tag_data = (f"object {head}\ntype commit\ntag synthetic\n"
                         "tagger Other <nobody@example.test> 0 +0000\n\nSynthetic tag\n")
             bad_tag = git("mktag", input=tag_data)
@@ -147,6 +227,27 @@ class PublicRefTests(unittest.TestCase):
             self.assertIn("Release refs must resolve to commits", result.stderr)
             git("update-ref", "-d", "refs/tags/synthetic-blob")
 
+            sensitive_name = "gh" + "p_" + "A" * 30
+            empty = git("mktree", input="")
+            root_entries = git("ls-tree", "HEAD")
+            empty_tree = git("mktree", input=root_entries + f"\n040000 tree {empty}\t{sensitive_name}\n")
+            empty_commit = git("commit-tree", empty_tree, "-p", head, input="Synthetic empty tree\n")
+            git("update-ref", "refs/tags/synthetic-empty-tree", empty_commit)
+            result = check()
+            self.assertNotEqual(result.returncode, 0, "sensitive empty directory names must be refused")
+            self.assertIn("[redacted path]: private or sensitive historical directory", result.stderr)
+            self.assertNotIn(sensitive_name, result.stderr)
+            git("update-ref", "-d", "refs/tags/synthetic-empty-tree")
+
+            link.symlink_to("../README.md")
+            git("add", "--", "script/synthetic-link")
+            git("commit", "--quiet", "-m", "Create synthetic historical symlink")
+            git("rm", "--quiet", "--", "script/synthetic-link")
+            git("commit", "--quiet", "-m", "Remove synthetic historical symlink")
+            result = check()
+            self.assertNotEqual(result.returncode, 0, "historical symlinks must be refused")
+            self.assertIn("non-regular historical source", result.stderr)
+
             hidden = work / "Local/history.txt"
             hidden.parent.mkdir(exist_ok=True)
             shutil.copyfile(work / "README.md", hidden)
@@ -157,6 +258,17 @@ class PublicRefTests(unittest.TestCase):
             result = check()
             self.assertNotEqual(result.returncode, 0, "private historical paths must be refused")
             self.assertIn("Local/history.txt: runtime/private path", result.stderr)
+
+            token_file = work / (sensitive_name + ".txt")
+            token_file.write_text("synthetic ordinary content\n")
+            git("add", "--", token_file.name)
+            git("commit", "--quiet", "-m", "Create synthetic sensitive pathname")
+            git("rm", "--quiet", "--", token_file.name)
+            git("commit", "--quiet", "-m", "Remove synthetic sensitive pathname")
+            result = check()
+            self.assertNotEqual(result.returncode, 0, "sensitive historical filenames must be refused")
+            self.assertIn("[redacted path]: sensitive path pattern", result.stderr)
+            self.assertNotIn(sensitive_name, result.stderr)
 
 
 if __name__ == "__main__":

@@ -1,5 +1,6 @@
 // Inspect indexed files and all reachable history; never print matched values.
 const decoder = new TextDecoder();
+const pathDecoder = new TextDecoder("utf-8", { fatal: true });
 async function git(...args: string[]): Promise<Uint8Array> {
   const result = await new Deno.Command("git", {
     args: ["--no-replace-objects", ...args],
@@ -10,12 +11,19 @@ async function git(...args: string[]): Promise<Uint8Array> {
   if (!result.success) throw new Error("Git inspection failed");
   return result.stdout;
 }
+if (
+  decoder.decode(await git("rev-parse", "--is-shallow-repository")).trim() !==
+    "false"
+) {
+  console.error("Shallow Git history cannot be reviewed completely.");
+  Deno.exit(1);
+}
 // Notes can contain private agent metadata. Snapshot branch/tag refs and
 // refuse unknown namespaces before reading their objects, including Git notes.
 // Remote-tracking refs are safe only when their commits are already in the
 // branch/tag history inspected below; this supports ordinary Git clones.
 const refFormat = "--format=%(refname) %(objectname) %(symref)";
-const refs = decoder.decode(await git("for-each-ref", refFormat));
+const refs = pathDecoder.decode(await git("for-each-ref", refFormat));
 const refRows = refs.trim().split("\n").filter(Boolean).map((line) =>
   line.split(" ")
 );
@@ -37,6 +45,15 @@ const commits = new Set(
   decoder.decode(await git("rev-list", ...refObjects)).trim().split("\n")
     .filter(Boolean),
 );
+const headOid = decoder.decode(await git("rev-parse", "--verify", "HEAD"))
+  .trim();
+const headName = decoder.decode(
+  await git("rev-parse", "--symbolic-full-name", "HEAD"),
+).trim();
+if (!commits.has(headOid)) {
+  console.error("HEAD is outside the reviewed branch/tag history.");
+  Deno.exit(1);
+}
 if (trackingRefs.length) {
   if (trackingRefs.some(([, oid]) => !commits.has(oid))) {
     console.error(
@@ -45,8 +62,26 @@ if (trackingRefs.length) {
     Deno.exit(1);
   }
 }
+// Pin every staged path and object before inspection. Recheck the raw index at
+// the end so a concurrent writer cannot silently add or replace a staged file.
+const indexSnapshot = await git("ls-files", "--stage", "-z");
+const indexEntries = pathDecoder.decode(indexSnapshot).split("\0").filter(
+  Boolean,
+).map((entry) => {
+  const tab = entry.indexOf("\t");
+  if (tab < 0) throw new Error("Invalid Git index entry");
+  const [mode, oid, stage] = entry.slice(0, tab).split(" ");
+  if (stage !== "0") throw new Error("Unmerged Git index requires review");
+  return { mode, oid, path: entry.slice(tab + 1) };
+});
+const manifestEntry = indexEntries.find(({ path }) =>
+  path === "public-source.json"
+);
+if (!manifestEntry || !["100644", "100755"].includes(manifestEntry.mode)) {
+  throw new Error("Public source manifest must be a regular staged file");
+}
 const manifest = JSON.parse(
-  decoder.decode(await git("show", ":public-source.json")),
+  decoder.decode(await git("cat-file", "blob", manifestEntry.oid)),
 );
 const allowed = new Set<string>(manifest.files);
 const pins: Record<string, string> = { ...manifest.assets };
@@ -57,6 +92,8 @@ const privatePath =
   /(^|\/)(Local|\.build|\.env(?:\..*)?)(\/|$)|\.(sqlite3?|p12|pem|key)$|-(wal|shm)$/i;
 const secret =
   /-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----|\bAKIA[A-Z0-9]{16}\b|\bgh[pousr]_[A-Za-z0-9]{30,}\b|\bsk-proj-[A-Za-z0-9_-]{30,}\b|\/Users\/[A-Za-z][^/\s]*\//;
+const displayPath = (path: string) =>
+  secret.test(path) ? "[redacted path]" : path;
 let failures = 0;
 if (secret.test(refs)) {
   console.error("Git ref contains a credential or personal path pattern");
@@ -64,6 +101,7 @@ if (secret.test(refs)) {
 }
 async function inspect(path: string, bytes: Uint8Array, indexed: boolean) {
   let reason = privatePath.test(path) ? "runtime/private path" : null;
+  if (secret.test(path)) reason = "sensitive path pattern";
   if (indexed && !allowed.has(path)) reason = "unreviewed indexed file";
   if (bytes.includes(0) || pins[path]) {
     const hash = Array.from(
@@ -108,19 +146,24 @@ async function inspect(path: string, bytes: Uint8Array, indexed: boolean) {
     reason = "credential or personal path pattern";
   }
   if (reason) {
-    console.error(`${path}: ${reason}`);
+    console.error(`${displayPath(path)}: ${reason}`);
     failures++;
   }
 }
-const files = decoder.decode(await git("ls-files", "-z")).split("\0").filter(
-  Boolean,
-);
-for (const file of files) {
-  await inspect(file, await git("show", `:${file}`), true);
+const files = indexEntries.map(({ path }) => path);
+for (const { path, mode, oid } of indexEntries) {
+  if (!["100644", "100755"].includes(mode)) {
+    console.error(
+      `${displayPath(path)}: non-regular indexed file requires explicit review`,
+    );
+    failures++;
+    continue;
+  }
+  await inspect(path, await git("cat-file", "blob", oid), true);
 }
 for (const file of allowed) {
   if (!files.includes(file)) {
-    console.error(`${file}: missing reviewed file`);
+    console.error(`${displayPath(file)}: missing reviewed file`);
     failures++;
   }
 }
@@ -132,36 +175,55 @@ const objects = decoder.decode(
 // tree as well so a reused blob cannot hide a private historical pathname.
 const inspected = new Set<string>();
 for (const commit of commits) {
-  const entries = decoder.decode(
-    await git("ls-tree", "-r", "-z", "--full-tree", commit),
+  const entries = pathDecoder.decode(
+    await git("ls-tree", "-r", "-t", "-z", "--full-tree", commit),
   )
     .split("\0").filter(Boolean);
   for (const entry of entries) {
     const tab = entry.indexOf("\t");
     if (tab < 0) throw new Error("Invalid Git tree entry");
-    const [, type, oid] = entry.slice(0, tab).split(" ");
+    const [mode, type, oid] = entry.slice(0, tab).split(" ");
     const path = entry.slice(tab + 1), key = `${oid}\0${path}`;
     if (inspected.has(key)) continue;
     inspected.add(key);
-    if (type !== "blob") {
-      console.error(`${path}: submodule requires explicit review`);
+    if (type === "tree") {
+      if (privatePath.test(path) || secret.test(path)) {
+        console.error(
+          `${displayPath(path)}: private or sensitive historical directory`,
+        );
+        failures++;
+      }
+      continue;
+    }
+    if (type !== "blob" || !["100644", "100755"].includes(mode)) {
+      console.error(
+        `${
+          displayPath(path)
+        }: non-regular historical source requires explicit review`,
+      );
       failures++;
       continue;
     }
     await inspect(path, await git("cat-file", "blob", oid), false);
   }
 }
-const authors = decoder.decode(
-  await git("log", ...refObjects, "--format=%an <%ae>%n%cn <%ce>"),
-);
-for (const author of new Set(authors.trim().split("\n").filter(Boolean))) {
-  if (author !== "codingEzio <22790019+codingEzio@users.noreply.github.com>") {
-    console.error("Unexpected first-party history identity");
-    failures++;
-  }
-}
 for (const commit of commits) {
   const raw = decoder.decode(await git("cat-file", "commit", commit));
+  const boundary = raw.indexOf("\n\n");
+  const header = boundary < 0 ? [] : raw.slice(0, boundary).split("\n");
+  const authors = header.filter((line) => line.startsWith("author "));
+  const committers = header.filter((line) => line.startsWith("committer "));
+  const author = authors.length === 1
+    ? /^author (.+?) \d+ [+-]\d{4}$/.exec(authors[0])?.[1]
+    : undefined;
+  const committer = committers.length === 1
+    ? /^committer (.+?) \d+ [+-]\d{4}$/.exec(committers[0])?.[1]
+    : undefined;
+  const expected = "codingEzio <22790019+codingEzio@users.noreply.github.com>";
+  if (author !== expected || committer !== expected) {
+    console.error("Commit contains an unexpected or ambiguous identity");
+    failures++;
+  }
   if (secret.test(raw)) {
     console.error(
       "Commit metadata or message contains a credential or personal path pattern",
@@ -230,10 +292,31 @@ for (const [name, firstOid] of releaseRefs) {
   }
 }
 if (
-  decoder.decode(await git("for-each-ref", refFormat)) !== refs
+  pathDecoder.decode(await git("for-each-ref", refFormat)) !== refs
 ) {
   console.error(
     "Git refs changed during review; repeat in an isolated repository.",
+  );
+  failures++;
+}
+const finalIndex = await git("ls-files", "--stage", "-z");
+if (
+  indexSnapshot.length !== finalIndex.length ||
+  indexSnapshot.some((byte, i) => byte !== finalIndex[i])
+) {
+  console.error(
+    "Git index changed during review; repeat after other writers finish.",
+  );
+  failures++;
+}
+if (
+  decoder.decode(await git("rev-parse", "--verify", "HEAD")).trim() !==
+    headOid ||
+  decoder.decode(await git("rev-parse", "--symbolic-full-name", "HEAD"))
+      .trim() !== headName
+) {
+  console.error(
+    "HEAD changed during review; repeat after other writers finish.",
   );
   failures++;
 }
